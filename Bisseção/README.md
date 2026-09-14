@@ -2,7 +2,7 @@
 
 Aplicação web interativa para encontrar raízes de funções (`f(x) = 0`), desenvolvida como trabalho acadêmico de Cálculo Numérico. Além da Bisseção, o site também implementa Newton-Raphson, Secante e Falsa Posição para fins de comparação, busca de múltiplas raízes e interpolação polinomial de Newton.
 
-> 📘 Um guia de uso completo e ilustrado, voltado para quem nunca teve contato com o tema, está disponível em [`Manual_do_Usuário.pdf`](./Manual_do_Usuário.pdf).
+> 📘 Um guia de uso completo e ilustrado, voltado para quem nunca teve contato com o tema, está disponível em Manual do Usuário.
 
 ## Como executar
 

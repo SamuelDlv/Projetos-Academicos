@@ -1,0 +1,1069 @@
+/* ============================================================
+   style.css — Método da Bisseção
+   Tema: Neve Minimalista Profissional · Responsivo
+   ============================================================
+   Organização deste arquivo (em ordem):
+     1.  Importação de fontes Google
+     2.  Tokens de design (variáveis CSS globais)
+     3.  Reset e base
+     4.  Animação de neve (canvas)
+     5.  Layout geral da aplicação
+     6.  Cabeçalho (header)
+     7.  Navegação por abas (section-nav)
+     8.  Painel hero de cada seção
+     9.  Layout principal (sidebar + conteúdo)
+    10.  Sidebar de configurações
+    11.  Painéis de seção
+    12.  Card (componente de container)
+    13.  Formulários e inputs
+    14.  Botões de exemplo
+    15.  Botões gerais
+    16.  Indicador de Bolzano
+    17.  Caixa de teoria
+    18.  Estimativa de iterações
+    19.  Coluna de resultados
+    20.  Cards de estatísticas
+    21.  Alertas (erro e aviso)
+    22.  Estado vazio (empty state)
+    23.  Abas e painéis de gráfico
+    24.  Controles de animação
+    25.  Grid de comparação de métodos
+    26.  Múltiplas raízes (chips)
+    27.  Interpolação (tabela de pontos)
+    28.  Tabela de iterações
+    29.  Divisor horizontal
+    30.  Tooltip
+    31.  Scrollbar customizada
+    32.  Animações e utilitários
+    33.  Media queries responsivas
+   ============================================================ */
+
+/* ── 1. Importação de fontes ─────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=Instrument+Serif:ital@0;1&family=Courier+Prime:ital,wght@0,400;0,700;1,400&display=swap');
+
+/* ── 2. Tokens de design ─────────────────────────────────── */
+/* Variáveis CSS globais que centralizam o sistema de design.
+   Alterar um valor aqui reflete em todo o projeto. */
+:root {
+  /* Paleta de cinzas/azuis frios (tons de neve) */
+  --snow:  #f7f8fb;   /* fundo principal da página */
+  --white: #ffffff;   /* branco puro (cards, inputs) */
+  --frost: #eef1f7;   /* cinza muito claro (backgrounds secundários) */
+  --ice:   #dde3ee;   /* cinza claro (bordas sutis) */
+  --mist:  #c4ccdb;   /* cinza médio (placeholders, elementos desabilitados) */
+  --slate: #8a95a8;   /* cinza azulado (texto secundário, labels) */
+  --dusk:  #4a5568;   /* cinza escuro (texto terciário) */
+  --ink:   #1a2030;   /* quase preto (texto principal) */
+
+  /* Paleta azul (ação principal, destaque) */
+  --blue:       #2563eb;  /* azul primário */
+  --blue-d:     #1d4ed8;  /* azul escuro (hover) */
+  --blue-light: #dbeafe;  /* azul muito claro (bordas suaves) */
+  --blue-soft:  #eff6ff;  /* azul quase branco (backgrounds sutis) */
+
+  /* Cores de acento temáticas */
+  --teal:         #0891b2;   /* ciano (f(x*)) */
+  --teal-light:   #cffafe;
+  --red:          #dc2626;   /* vermelho (erros, valores negativos) */
+  --red-soft:     #fef2f2;
+  --red-light:    #fca5a5;
+  --amber:        #d97706;   /* âmbar (avisos, erro numérico) */
+  --amber-light:  #fef3c7;
+  --amber-mid:    #fcd34d;
+  --green:        #059669;   /* verde (convergência, valores positivos) */
+  --green-light:  #d1fae5;
+  --purple:       #7c3aed;   /* roxo (interpolação, falsa posição) */
+  --purple-light: #ede9fe;
+  --orange:       #ea580c;   /* laranja (ponto médio c na animação) */
+  --orange-light: #ffedd5;
+
+  /* Sombras progressivas */
+  --shadow-xs: 0 1px 2px rgba(10,16,30,.06);    /* sombra quase imperceptível */
+  --shadow-sm: 0 2px 8px rgba(10,16,30,.08);    /* sombra sutil (cards) */
+  --shadow-md: 0 4px 20px rgba(10,16,30,.10);   /* sombra média (hover) */
+  --shadow-lg: 0 8px 40px rgba(10,16,30,.13);   /* sombra pronunciada (modais) */
+
+  /* Border-radius padronizados */
+  --r:    6px;   /* padrão (inputs, badges, células) */
+  --r-lg: 12px;  /* grande (cards) */
+  --r-xl: 16px;  /* extra grande (modal, hero) */
+
+  /* Famílias tipográficas */
+  --font-serif: 'DM Serif Display', Georgia, serif;          /* títulos de seção */
+  --font-sans:  'DM Sans', sans-serif;                       /* texto geral, botões */
+  --font-mono:  'DM Mono', 'Courier New', monospace;         /* código, expressões */
+  --font-num:   'Courier Prime', 'DM Mono', monospace;       /* valores numéricos na tabela */
+
+  /* Transição padrão para animações de hover */
+  --tr: 180ms cubic-bezier(.4,0,.2,1);
+
+  /* Dimensões estruturais */
+  --header-h:  60px;   /* altura do cabeçalho fixo */
+  --sidebar-w: 370px;  /* largura do painel lateral */
+}
+
+/* ── 3. Reset e base ─────────────────────────────────────── */
+/* Reset minimalista: remove margens/paddings padrão e unifica box-sizing */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;  /* suavização de fontes no WebKit */
+  scroll-behavior: smooth;              /* scroll suave para âncoras */
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--snow);
+  color: var(--ink);
+  min-height: 100vh;
+  overflow-x: hidden;   /* evita scroll horizontal indesejado */
+}
+
+/* ── 4. Animação de neve ─────────────────────────────────── */
+/* Canvas de neve posicionado fixo atrás de todo conteúdo.
+   pointer-events:none garante que não interfira com interações. */
+#snow-canvas {
+  position: fixed;
+  inset: 0;              /* equivalente a top/right/bottom/left: 0 */
+  pointer-events: none;
+  z-index: 0;
+  opacity: .5;
+}
+
+/* ── 5. Layout geral da aplicação ────────────────────────── */
+/* Wrapper principal que fica acima do canvas de neve (z-index: 1) */
+.app {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* ── 6. Cabeçalho (header) ───────────────────────────────── */
+/* Sticky no topo com z-index alto para ficar acima de tudo */
+.page-header {
+  background: var(--white);
+  border-bottom: 1px solid var(--ice);
+  padding: 0 28px;
+  height: var(--header-h);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  box-shadow: var(--shadow-xs);
+  position: sticky;
+  top: 0;
+  z-index: 200;    /* acima de todos os outros elementos */
+}
+
+.header-brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+
+/* Quadrado azul com ícone SVG (logo da aplicação) */
+.header-logo {
+  width: 32px; height: 32px;
+  background: var(--blue);
+  border-radius: var(--r);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.header-logo svg { width: 17px; height: 17px; }
+
+.header-title {
+  font-family: var(--font-serif);
+  font-size: 1.05rem;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.header-subtitle {
+  font-size: .65rem;
+  color: var(--slate);
+  font-family: var(--font-mono);
+  letter-spacing: .5px;
+  margin-top: 1px;
+}
+
+.header-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+
+/* Badge de status do Python com animação de pulso no ponto indicador */
+.header-badge {
+  display: flex; align-items: center; gap: 6px;
+  font-family: var(--font-mono);
+  font-size: .62rem;
+  color: var(--blue);
+  background: var(--blue-soft);
+  border: 1px solid var(--blue-light);
+  padding: 3px 9px;
+  border-radius: 100px;
+  letter-spacing: .5px;
+  white-space: nowrap;
+}
+
+/* Ponto indicador de status com animação de pulso suave */
+.header-badge::before {
+  content: '';
+  width: 5px; height: 5px;
+  background: var(--blue);
+  border-radius: 50%;
+  animation: pulseDot 2s ease-in-out infinite;
+}
+
+@keyframes pulseDot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: .4; transform: scale(.8); }
+}
+
+/* Botão hamburguer para menu mobile (oculto em desktop) */
+.menu-toggle {
+  display: none;
+  background: none;
+  border: 1px solid var(--ice);
+  border-radius: var(--r);
+  padding: 6px 8px;
+  cursor: pointer;
+  color: var(--dusk);
+  align-items: center;
+  justify-content: center;
+}
+.menu-toggle svg { width: 18px; height: 18px; }
+
+/* ── 7. Navegação por abas ───────────────────────────────── */
+/* Barra de abas sticky posicionada logo abaixo do header */
+.section-nav {
+  background: var(--white);
+  border-bottom: 1px solid var(--ice);
+  padding: 0 28px;
+  display: flex;
+  gap: 0;
+  overflow-x: auto;         /* scroll horizontal em telas pequenas */
+  scrollbar-width: none;    /* oculta scrollbar no Firefox */
+  -webkit-overflow-scrolling: touch;  /* scroll suave em iOS */
+  position: sticky;
+  top: var(--header-h);    /* fica imediatamente abaixo do header */
+  z-index: 150;
+}
+.section-nav::-webkit-scrollbar { display: none; }  /* oculta scrollbar no Chrome */
+
+/* Cada aba de navegação */
+.nav-tab {
+  padding: 0 18px;
+  height: 46px;
+  font-size: .78rem;
+  font-weight: 500;
+  color: var(--slate);
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;   /* indicador de ativo como borda inferior */
+  transition: all var(--tr);
+  white-space: nowrap;
+  letter-spacing: .2px;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 1px;
+  position: relative;
+}
+
+.nav-tab-label { font-size: .78rem; font-weight: 500; line-height: 1; }
+.nav-tab-sub   { font-size: .58rem; color: var(--mist); font-weight: 400; letter-spacing: .3px; transition: color var(--tr); line-height: 1; }
+
+.nav-tab:hover            { color: var(--dusk); }
+.nav-tab:hover .nav-tab-sub { color: var(--slate); }
+.nav-tab.active           { color: var(--blue); border-bottom-color: var(--blue); }
+.nav-tab.active .nav-tab-sub { color: rgba(37,99,235,.6); }
+
+/* ── 8. Painel hero de cada seção ────────────────────────── */
+/* Banner descritivo no topo de cada aba com ícone e texto explicativo */
+.section-hero {
+  background: linear-gradient(135deg, var(--blue-soft) 0%, var(--white) 100%);
+  border: 1px solid var(--blue-light);
+  border-radius: var(--r-lg);
+  padding: 24px 28px;
+  display: flex; align-items: center; gap: 20px;
+}
+
+.section-hero-icon {
+  width: 48px; height: 48px;
+  background: var(--blue);
+  border-radius: var(--r-lg);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(37,99,235,.25);  /* sombra azul suave */
+}
+.section-hero-icon svg { width: 22px; height: 22px; }
+
+.section-hero-text h2 {
+  font-family: var(--font-serif);
+  font-size: 1.15rem;
+  color: var(--ink);
+  line-height: 1.25;
+}
+.section-hero-text p {
+  font-size: .74rem;
+  color: var(--slate);
+  margin-top: 6px;
+  line-height: 1.65;
+  max-width: 520px;
+}
+
+/* ── 9. Layout principal ─────────────────────────────────── */
+/* Grade de duas colunas: sidebar fixa à esquerda, conteúdo à direita */
+.main-wrap {
+  flex: 1;
+  display: grid;
+  grid-template-columns: var(--sidebar-w) 1fr;
+  gap: 24px;
+  padding: 24px 28px;
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+  align-items: start;  /* impede que o sidebar se estique até o fim da página */
+}
+
+/* ── 10. Sidebar de configurações ────────────────────────── */
+/* Sticky com altura máxima para não ultrapassar a viewport.
+   Compensa o header (60px) + nav (46px) + margens. */
+.sidebar {
+  display: flex; flex-direction: column; gap: 16px;
+  position: sticky;
+  top: calc(var(--header-h) + 46px + 8px);
+  max-height: calc(100vh - var(--header-h) - 46px - 32px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 4px;
+  scroll-behavior: smooth;
+}
+
+/* Oculta o corpo do sidebar quando colapsado (mobile) */
+.sidebar-collapsed .sidebar-body { display: none; }
+
+/* Scrollbar fina e discreta para o sidebar */
+.sidebar::-webkit-scrollbar       { width: 4px; }
+.sidebar::-webkit-scrollbar-track { background: transparent; }
+.sidebar::-webkit-scrollbar-thumb { background: var(--ice); border-radius: 100px; }
+.sidebar::-webkit-scrollbar-thumb:hover { background: var(--mist); }
+.sidebar { scrollbar-width: thin; scrollbar-color: var(--ice) transparent; }  /* Firefox */
+
+/* ── 11. Painéis de seção ────────────────────────────────── */
+/* Cada seção (aba) é um painel oculto por padrão.
+   Apenas o painel com .active é exibido como flex column. */
+.section-panel        { display: none; }
+.section-panel.active { display: flex; flex-direction: column; gap: 20px; padding-top: 12px; }
+
+/* ── 12. Card (container principal de conteúdo) ──────────── */
+/* Componente de caixa branca com borda sutil, sombra e cantos arredondados */
+.card {
+  background: var(--white);
+  border: 1px solid var(--ice);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  transition: box-shadow var(--tr);
+}
+.card:hover { box-shadow: var(--shadow-md); }  /* sombra mais pronunciada no hover */
+
+.card-header {
+  padding: 15px 20px 12px;
+  border-bottom: 1px solid var(--frost);
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; flex-wrap: wrap; gap: 8px;
+}
+
+.card-title {
+  font-size: .68rem;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--slate);
+}
+
+.card-body { padding: 20px; }
+.card-body + .card-body { padding-top: 0; }  /* sem padding duplo entre bodies adjacentes */
+
+/* ── 13. Formulários e inputs ────────────────────────────── */
+.field { margin-bottom: 15px; }
+.field:last-child { margin-bottom: 0; }
+
+/* Linha de label: texto à esquerda e dica/hint à direita */
+.field-label { display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px; }
+.field-label span { font-size: .73rem; font-weight: 500; color: var(--dusk); }
+.field-label .hint { font-size: .62rem; font-family: var(--font-mono); color: var(--slate); font-weight: 400; }
+
+/* Estilo base para inputs e selects */
+.input, .select {
+  width: 100%;
+  background: var(--snow);
+  border: 1px solid var(--ice);
+  border-radius: var(--r);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: .82rem;
+  padding: 9px 13px;
+  outline: none;
+  transition: border-color var(--tr), box-shadow var(--tr), background var(--tr);
+  -webkit-appearance: none; -moz-appearance: none;  /* remove estilo nativo de selects */
+}
+.input:hover              { border-color: var(--mist); }
+.input:focus, .select:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(37,99,235,.1);  /* anel de foco azul transparente */
+  background: var(--white);
+}
+.input::placeholder { color: var(--mist); }
+
+/* Grid de dois inputs lado a lado (campo a e campo b) */
+.input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+/* Input com prefixo (letra "a" ou "b" antes do campo numérico) */
+.input-prefix-wrap { position: relative; }
+.input-prefix {
+  position: absolute; left: 11px; top: 50%; transform: translateY(-50%);
+  font-family: var(--font-mono); font-size: .72rem; color: var(--slate);
+  pointer-events: none;  /* não captura cliques */
+}
+.input-prefix ~ .input { padding-left: 26px; }  /* recuo para o prefixo */
+
+/* Select com seta customizada (▾) no lugar do indicador nativo */
+.select-wrap { position: relative; }
+.select-wrap::after {
+  content: '';
+  position: absolute; right: 11px; top: 50%; transform: translateY(-50%);
+  width: 0; height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid var(--slate);
+  pointer-events: none;
+}
+.select { padding-right: 28px; cursor: pointer; }
+
+/* ── 14. Botões de exemplo ───────────────────────────────── */
+.examples-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+
+.example-btn {
+  background: var(--snow);
+  border: 1px solid var(--ice);
+  border-radius: var(--r);
+  padding: 8px 10px;
+  font-family: var(--font-mono);
+  font-size: .68rem;
+  color: var(--dusk);
+  cursor: pointer;
+  text-align: left;
+  transition: all var(--tr);
+  line-height: 1.4;
+}
+.example-btn:hover {
+  border-color: var(--blue); color: var(--blue);
+  background: var(--blue-soft);
+  transform: translateY(-1px);   /* leve elevação no hover */
+  box-shadow: var(--shadow-xs);
+}
+.example-btn.active-example { border-color: var(--blue); background: var(--blue-soft); color: var(--blue); }
+.example-btn:active { transform: translateY(0); }  /* "pressiona" ao clicar */
+.ex-name { display: block; font-size: .6rem; color: var(--slate); margin-bottom: 2px; }
+
+/* ── 15. Botões gerais ───────────────────────────────────── */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  padding: 10px 18px;
+  border-radius: var(--r); border: none;
+  font-family: var(--font-sans); font-size: .82rem; font-weight: 500;
+  cursor: pointer;
+  transition: all var(--tr);
+  white-space: nowrap;
+}
+
+/* Botão primário (azul sólido) — ação principal */
+.btn-primary {
+  background: var(--blue); color: #fff;
+  box-shadow: 0 2px 8px rgba(37,99,235,.25);
+}
+.btn-primary:hover {
+  background: var(--blue-d);
+  box-shadow: 0 4px 16px rgba(37,99,235,.35);
+  transform: translateY(-1px);
+}
+.btn-primary:active  { transform: translateY(0); }
+.btn-primary:disabled {
+  background: var(--mist); box-shadow: none;
+  cursor: not-allowed; transform: none;
+}
+
+/* Botão ghost (borda discreta, sem fundo) — ação secundária */
+.btn-ghost { background: transparent; color: var(--dusk); border: 1px solid var(--ice); }
+.btn-ghost:hover { border-color: var(--mist); background: var(--frost); }
+
+/* Botão de execução principal (largura total do sidebar) */
+.btn-run { width: 100%; padding: 12px; }
+
+.btn svg { width: 15px; height: 15px; flex-shrink: 0; }
+
+/* Spinner de carregamento (círculo girando) */
+.spinner {
+  width: 14px; height: 14px;
+  border: 2px solid rgba(255,255,255,.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+  flex-shrink: 0;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Dica de atalho de teclado abaixo do botão principal */
+.shortcut-hint { font-size: .62rem; color: var(--mist); text-align: center; margin-top: 6px; font-family: var(--font-mono); }
+
+/* ── 16. Indicador de Bolzano ────────────────────────────── */
+/* Painel visual que mostra em tempo real se f(a)·f(b) < 0 */
+.bolzano-box {
+  border-radius: var(--r);
+  padding: 14px 16px;
+  border: 1px solid var(--ice);
+  background: var(--frost);
+  margin-top: 4px;
+  transition: all .3s ease;
+}
+
+/* Linha com indicador de sinal + informação de f(a) ou f(b) */
+.bolzano-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+
+/* Quadrado colorido que mostra o sinal: +/−/0/? */
+.bolzano-sign {
+  width: 44px; height: 44px;
+  border-radius: var(--r);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-mono); font-size: 1.1rem; font-weight: 600;
+  transition: all .3s ease;
+  flex-shrink: 0;
+}
+.bolzano-sign.pos     { background: var(--green-light); color: var(--green); border: 1.5px solid rgba(5,150,105,.2); }
+.bolzano-sign.neg     { background: var(--red-soft);    color: var(--red);   border: 1.5px solid rgba(220,38,38,.2); }
+.bolzano-sign.zero    { background: var(--blue-soft);   color: var(--blue);  border: 1.5px solid var(--blue-light); }
+.bolzano-sign.neutral { background: var(--frost);       color: var(--mist);  border: 1.5px solid var(--ice); }
+
+.bolzano-info { flex: 1; min-width: 0; }
+.bolzano-info .lbl { font-size: .62rem; color: var(--slate); text-transform: uppercase; letter-spacing: .8px; font-weight: 500; }
+.bolzano-info .val { font-family: var(--font-mono); font-size: .82rem; color: var(--ink); margin-top: 2px; word-break: break-all; }
+
+/* Banner de resultado: verde (ok), vermelho (falha) ou cinza (aguardando) */
+.bolzano-result {
+  display: flex; align-items: center; gap: 7px;
+  font-size: .75rem; font-weight: 500;
+  padding: 8px 12px;
+  border-radius: var(--r);
+  margin-top: 6px;
+}
+.bolzano-result.ok      { background: var(--green-light); color: var(--green); }
+.bolzano-result.fail    { background: var(--red-soft);    color: var(--red); }
+.bolzano-result.neutral { background: var(--frost);       color: var(--slate); }
+.bolzano-result svg { width: 14px; height: 14px; flex-shrink: 0; }
+
+/* ── 17. Caixa de teoria ─────────────────────────────────── */
+/* Bloco azul claro que exibe fórmulas e explicações matemáticas */
+.theory-box {
+  background: var(--blue-soft);
+  border: 1px solid var(--blue-light);
+  border-radius: var(--r);
+  padding: 14px;
+}
+.theory-box p { font-size: .73rem; color: var(--dusk); line-height: 1.75; }
+
+/* Fórmula matemática formatada centralmente em fonte monospace */
+.theory-formula {
+  font-family: var(--font-num);
+  font-size: .85rem;
+  color: var(--blue);
+  text-align: center;
+  display: block;
+  margin: 8px 0;
+  padding: 7px;
+  background: var(--white);
+  border-radius: var(--r);
+  border: 1px solid var(--blue-light);
+  letter-spacing: .3px;
+}
+
+/* ── 18. Estimativa de iterações ─────────────────────────── */
+/* Painel que mostra n_estimado, n_real e barra de eficiência */
+.iter-estimate {
+  background: var(--frost);
+  border: 1px solid var(--ice);
+  border-radius: var(--r);
+  padding: 12px 14px;
+  margin-top: 4px;
+}
+.iter-estimate-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.iter-estimate-row:last-child { margin-bottom: 0; }
+.ie-label  { font-size: .68rem; color: var(--slate); font-weight: 500; }
+.ie-val    { font-family: var(--font-num); font-size: .88rem; font-weight: 700; color: var(--blue); }
+.ie-formula { font-family: var(--font-num); font-size: .65rem; color: var(--mist); display: block; text-align: center; margin-top: 4px; }
+
+/* Barra de progresso de eficiência (real vs. estimado) */
+.conv-bar-wrap { margin-top: 10px; }
+.conv-bar-label {
+  font-size: .62rem; color: var(--slate); font-weight: 500;
+  text-transform: uppercase; letter-spacing: .8px;
+  margin-bottom: 6px;
+  display: flex; justify-content: space-between;
+}
+.conv-bar-track { height: 4px; background: var(--ice); border-radius: 100px; overflow: hidden; }
+.conv-bar-fill  {
+  height: 100%;
+  background: linear-gradient(90deg, var(--blue), var(--teal));  /* gradiente azul→ciano */
+  border-radius: 100px;
+  transition: width .6s cubic-bezier(.4,0,.2,1);  /* animação suave de preenchimento */
+  width: 0;  /* começa em 0%, preenchido via JS */
+}
+
+/* ── 19. Coluna de resultados ────────────────────────────── */
+/* Container flex que empilha cards de resultado verticalmente */
+.results-col { display: flex; flex-direction: column; gap: 20px; }
+
+/* ── 20. Cards de estatísticas ───────────────────────────── */
+/* Grade de 5 cards horizontais mostrando os principais resultados da bisseção */
+.status-grid { display: grid; grid-template-columns: repeat(5,1fr); gap: 10px; }
+
+.stat-card {
+  background: var(--white);
+  border: 1px solid var(--ice);
+  border-radius: var(--r-lg);
+  padding: 14px 16px;
+  box-shadow: var(--shadow-xs);
+  transition: all var(--tr);
+  /* Começa invisível; JS adiciona .visible para animar a entrada */
+  opacity: 0; transform: translateY(8px);
+}
+.stat-card.visible {
+  opacity: 1; transform: translateY(0);
+  transition: opacity .3s ease, transform .3s ease, box-shadow var(--tr);
+}
+.stat-card:hover { box-shadow: var(--shadow-md); border-color: var(--mist); }
+
+/* Ícone quadrado colorido no topo do card */
+.stat-icon {
+  width: 26px; height: 26px;
+  border-radius: var(--r);
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 9px; flex-shrink: 0;
+}
+.stat-icon svg { width: 13px; height: 13px; }
+.stat-icon.blue  { background: var(--blue-soft);   color: var(--blue); }
+.stat-icon.teal  { background: var(--teal-light);  color: var(--teal); }
+.stat-icon.amber { background: var(--amber-light); color: var(--amber); }
+.stat-icon.green { background: var(--green-light); color: var(--green); }
+.stat-icon.red   { background: var(--red-soft);    color: var(--red); }
+
+.stat-label {
+  font-size: .6rem; font-weight: 500;
+  letter-spacing: .9px; text-transform: uppercase;
+  color: var(--slate); margin-bottom: 4px;
+}
+.stat-value {
+  font-family: var(--font-num); font-size: .92rem; font-weight: 700;
+  color: var(--ink); word-break: break-all; letter-spacing: -.3px;
+}
+/* Variantes de cor para o valor numérico */
+.stat-value.blue  { color: var(--blue);  }
+.stat-value.teal  { color: var(--teal);  }
+.stat-value.amber { color: var(--amber); }
+.stat-value.green { color: var(--green); }
+.stat-value.red   { color: var(--red);   }
+
+/* ── 21. Alertas ─────────────────────────────────────────── */
+/* Banners de erro (vermelho) e aviso (âmbar) com entrada animada */
+.alert {
+  display: none;  /* oculto por padrão; .visible o torna flex */
+  align-items: flex-start; gap: 11px;
+  padding: 12px 15px;
+  border-radius: var(--r);
+  border: 1px solid;
+  font-size: .78rem; line-height: 1.5;
+  animation: fadeIn .25s ease;
+}
+.alert.visible  { display: flex; }
+.alert-error    { background: var(--red-soft);    border-color: var(--red-light); color: var(--red); }
+.alert-warning  { background: var(--amber-light); border-color: var(--amber-mid); color: var(--amber); }
+.alert svg { width: 15px; height: 15px; flex-shrink: 0; margin-top: 1px; }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── 22. Estado vazio (empty state) ──────────────────────── */
+/* Exibido na área de resultados antes de qualquer cálculo ser feito */
+.empty-state {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 60px 24px; text-align: center; gap: 12px;
+  color: var(--mist);
+}
+.empty-state svg { width: 38px; height: 38px; opacity: .35; }
+.empty-state p   { font-size: .78rem; max-width: 230px; line-height: 1.7; color: var(--slate); }
+
+/* ── 23. Abas e painéis de gráfico ───────────────────────── */
+/* Seletor de modo de gráfico (f(x) / Convergência) */
+.chart-tabs {
+  display: flex; gap: 2px;
+  padding: 3px;
+  background: var(--frost);
+  border-radius: var(--r);
+  flex-wrap: wrap;
+}
+.chart-tab {
+  flex: 1; min-width: fit-content;
+  padding: 5px 10px;
+  font-size: .7rem; font-weight: 500;
+  border: none; border-radius: 4px;
+  cursor: pointer;
+  transition: all var(--tr);
+  color: var(--slate); background: transparent;
+  white-space: nowrap;
+}
+.chart-tab.active { background: var(--white); color: var(--ink); box-shadow: var(--shadow-xs); }
+.chart-tab:hover:not(.active) { color: var(--dusk); }
+
+/* Cada painel de gráfico fica oculto até receber .active */
+.chart-panel { display: none; }
+.chart-panel.active { display: block; }
+.chart-wrap  { padding: 6px 0 2px; }
+.chart-note  { font-size: .65rem; color: var(--mist); margin-top: 9px; font-family: var(--font-mono); line-height: 1.5; }
+
+/* ── 24. Controles de animação ───────────────────────────── */
+/* Canvas da animação passo a passo */
+.anim-canvas-wrap {
+  position: relative;
+  background: var(--snow);
+  border-radius: var(--r);
+  border: 1px solid var(--ice);
+  overflow: hidden;
+}
+#anim-canvas { display: block; width: 100%; height: 340px; }
+
+/* Barra de controles abaixo do canvas */
+.anim-controls {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 16px;
+  background: var(--white);
+  border-top: 1px solid var(--ice);
+  flex-wrap: wrap;
+}
+
+/* Botões play/pause/reset */
+.anim-btn {
+  background: none;
+  border: 1px solid var(--ice);
+  border-radius: var(--r);
+  width: 34px; height: 34px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: all var(--tr);
+  color: var(--dusk);
+  flex-shrink: 0;
+}
+.anim-btn:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-soft); }
+.anim-btn.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+.anim-btn svg { width: 14px; height: 14px; }
+
+/* Slider de progresso da animação */
+.anim-slider-wrap { flex: 1; min-width: 120px; display: flex; align-items: center; gap: 8px; }
+.anim-slider {
+  flex: 1;
+  -webkit-appearance: none;
+  height: 4px; border-radius: 100px;
+  background: var(--ice); outline: none; cursor: pointer;
+}
+/* Thumb (bolinha) do slider */
+.anim-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: var(--blue);
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(37,99,235,.4);
+}
+
+.anim-info { font-family: var(--font-mono); font-size: .68rem; color: var(--dusk); white-space: nowrap; }
+
+/* Controles de velocidade da animação */
+.anim-speed-wrap  { display: flex; align-items: center; gap: 6px; }
+.anim-speed-label { font-size: .62rem; color: var(--slate); }
+.speed-btn {
+  padding: 3px 8px; font-size: .62rem;
+  border: 1px solid var(--ice); border-radius: 100px;
+  background: none; cursor: pointer; color: var(--slate);
+  transition: all var(--tr); font-family: var(--font-mono);
+}
+.speed-btn.active { background: var(--blue-soft); border-color: var(--blue-light); color: var(--blue); }
+
+/* Badge de iteração atual na animação */
+.anim-iteration-badge {
+  background: var(--blue-soft); color: var(--blue);
+  border: 1px solid var(--blue-light);
+  border-radius: var(--r);
+  padding: 4px 10px;
+  font-family: var(--font-mono); font-size: .72rem; font-weight: 500;
+}
+
+/* ── 25. Grid de comparação de métodos ───────────────────── */
+/* 4 cards lado a lado: Bisseção, Falsa Posição, Newton, Secante */
+.method-compare-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; }
+
+.method-card {
+  background: var(--frost);
+  border: 1px solid var(--ice);
+  border-radius: var(--r);
+  padding: 12px 14px;
+  transition: all var(--tr);
+}
+.method-card.winner { background: var(--green-light); border-color: rgba(5,150,105,.25); }
+.method-card.failed { opacity: .55; }   /* método que não convergiu fica semitransparente */
+
+.method-name { font-size: .68rem; font-weight: 600; text-transform: uppercase; letter-spacing: .8px; color: var(--slate); margin-bottom: 8px; }
+.method-root { font-family: var(--font-mono); font-size: .9rem; font-weight: 600; color: var(--ink); }
+.method-root.green { color: var(--green); }  /* raiz do vencedor em verde */
+.method-iter { font-family: var(--font-mono); font-size: .72rem; color: var(--slate); margin-top: 4px; }
+
+/* Badge "Mais rápido" exibido no card vencedor */
+.winner-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: .6rem; font-weight: 600; color: var(--green);
+  background: rgba(5,150,105,.12);
+  padding: 2px 7px; border-radius: 100px; margin-top: 6px;
+}
+
+/* ── 26. Múltiplas raízes (chips) ────────────────────────── */
+/* Cada raiz encontrada é exibida como um "chip" azul */
+.root-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+
+.root-chip {
+  background: var(--blue-soft);
+  border: 1px solid var(--blue-light);
+  border-radius: var(--r);
+  padding: 8px 14px;
+  font-family: var(--font-mono); font-size: .78rem; color: var(--blue);
+  display: flex; flex-direction: column; gap: 3px;
+  min-width: 140px;
+  transition: all var(--tr);
+}
+.root-chip:hover { box-shadow: var(--shadow-sm); transform: translateY(-1px); }
+.root-chip .rc-label { font-size: .58rem; text-transform: uppercase; letter-spacing: .8px; color: var(--mist); font-weight: 500; }
+.root-chip .rc-val   { font-weight: 600; font-size: .9rem; }
+.root-chip .rc-sub   { font-size: .65rem; color: var(--slate); }
+
+.no-roots { text-align: center; padding: 28px; color: var(--mist); font-size: .78rem; }
+
+/* ── 27. Interpolação (tabela de pontos) ─────────────────── */
+/* Tabela editável com inputs inline para os pontos (x, y) */
+.points-table { width: 100%; border-collapse: collapse; font-family: var(--font-mono); font-size: .78rem; }
+.points-table th {
+  padding: 8px 10px; text-align: left;
+  color: var(--slate); font-size: .62rem;
+  text-transform: uppercase; letter-spacing: .8px;
+  border-bottom: 1px solid var(--ice);
+}
+.points-table td { padding: 7px 10px; border-bottom: 1px solid var(--frost); }
+
+/* Input inline dentro das células da tabela */
+.points-table td input {
+  background: none; border: none; outline: none;
+  font-family: var(--font-mono); font-size: .78rem; color: var(--ink); width: 100%;
+}
+.points-table td input:focus { color: var(--blue); }
+
+/* Botão de remover ponto (✕) */
+.rm-point-btn {
+  background: none; border: none;
+  color: var(--mist); cursor: pointer;
+  padding: 2px 5px; border-radius: 4px;
+  transition: all var(--tr);
+}
+.rm-point-btn:hover { color: var(--red); background: var(--red-soft); }
+
+/* Exibição do polinômio resultante P(x) */
+.poly-display {
+  background: var(--frost); border: 1px solid var(--ice);
+  border-radius: var(--r); padding: 12px 14px;
+  font-family: var(--font-mono); font-size: .75rem; color: var(--dusk);
+  word-break: break-all; line-height: 1.7; margin-top: 8px;
+}
+.poly-display strong { color: var(--blue); }
+
+/* ── 28. Tabela de iterações ─────────────────────────────── */
+/* Controles acima da tabela: busca e badge de contagem */
+.table-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+/* Campo de busca com ícone de lupa */
+.search-wrap { position: relative; }
+.search-wrap svg {
+  position: absolute; left: 9px; top: 50%; transform: translateY(-50%);
+  width: 12px; height: 12px; color: var(--slate); pointer-events: none;
+}
+.search-input {
+  background: var(--snow); border: 1px solid var(--ice); border-radius: var(--r);
+  padding: 6px 10px 6px 28px;   /* espaço para o ícone à esquerda */
+  font-family: var(--font-mono); font-size: .7rem; color: var(--ink);
+  outline: none; width: 140px;
+  transition: all var(--tr);
+}
+.search-input:focus {
+  border-color: var(--blue); width: 180px;   /* expande ao focar */
+  box-shadow: 0 0 0 3px rgba(37,99,235,.1);
+}
+
+/* Badge azul mostrando o número total de iterações */
+.iter-badge {
+  font-family: var(--font-mono); font-size: .62rem;
+  padding: 3px 8px; border-radius: 100px;
+  background: var(--blue-soft); color: var(--blue);
+  border: 1px solid var(--blue-light);
+}
+
+.table-scroll { overflow-x: auto; }   /* scroll horizontal em telas pequenas */
+
+/* Estilos da tabela de iterações */
+table { width: 100%; border-collapse: collapse; font-family: var(--font-num); font-size: .7rem; }
+
+thead th {
+  padding: 9px 11px;
+  text-align: right;
+  font-size: .58rem; letter-spacing: .8px; text-transform: uppercase;
+  color: var(--slate); font-weight: 500;
+  border-bottom: 1px solid var(--ice);
+  white-space: nowrap;
+  background: var(--snow);
+  cursor: pointer; user-select: none;   /* colunas são clicáveis para ordenar */
+  transition: color var(--tr);
+  font-family: var(--font-sans);
+}
+thead th:first-child { text-align: center; }   /* coluna "n" centralizada */
+thead th:hover { color: var(--blue); }
+
+/* Ícone de ordenação (↕, ↑ ou ↓) */
+thead th .sort-icon {
+  display: inline-block; margin-left: 2px;
+  opacity: .3; transition: opacity var(--tr); font-size: .58rem;
+}
+thead th.sorted .sort-icon { opacity: 1; color: var(--blue); }
+
+tbody tr {
+  transition: background var(--tr);
+  animation: rowIn .2s ease both;   /* entrada animada de cada linha */
+  border-bottom: 1px solid var(--frost);
+}
+@keyframes rowIn { from { opacity: 0; } to { opacity: 1; } }
+tbody tr:hover { background: var(--blue-soft); }
+tbody tr:last-child { border-bottom: none; }
+
+/* Última linha (iteração final) destacada em verde */
+tbody tr.final-row            { background: var(--green-light) !important; }
+tbody tr.final-row td         { color: var(--green); }
+
+td { padding: 8px 11px; text-align: right; color: var(--dusk); }
+td:first-child { text-align: center; color: var(--slate); font-size: .62rem; }  /* coluna n */
+
+/* Classes de cor para células específicas */
+.td-c   { color: var(--blue) !important; font-weight: 500; }  /* ponto médio c */
+.td-pos { color: var(--green); }    /* valores positivos de f */
+.td-neg { color: var(--red); }      /* valores negativos de f */
+.td-err { color: var(--amber); }    /* colunas de erro */
+
+/* ── 29. Divisor horizontal ──────────────────────────────── */
+.divider { height: 1px; background: var(--frost); margin: 14px 0; }
+
+/* ── 30. Tooltip ─────────────────────────────────────────── */
+/* Tooltip CSS puro usando atributo data-tip e pseudoelemento ::after */
+[data-tip] { position: relative; cursor: help; }
+[data-tip]::after {
+  content: attr(data-tip);
+  position: absolute; bottom: calc(100% + 6px); left: 50%;
+  transform: translateX(-50%);
+  background: var(--ink); color: #fff;
+  font-family: var(--font-mono); font-size: .6rem;
+  padding: 4px 8px; border-radius: 4px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0; transition: opacity var(--tr);
+  z-index: 300; letter-spacing: .3px;
+}
+[data-tip]:hover::after { opacity: 1; }  /* aparece no hover */
+
+/* ── 31. Scrollbar customizada ───────────────────────────── */
+/* Scrollbars finas e discretas em todo o documento */
+::-webkit-scrollbar         { width: 4px; height: 4px; }
+::-webkit-scrollbar-track   { background: var(--frost); }
+::-webkit-scrollbar-thumb   { background: var(--ice); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: var(--mist); }
+
+/* ── 32. Animações e utilitários ─────────────────────────── */
+/* Animação de entrada suave para elementos na carga inicial da página */
+.fade-up { opacity: 0; transform: translateY(10px); animation: fadeUp .4s ease forwards; }
+@keyframes fadeUp { to { opacity: 1; transform: translateY(0); } }
+
+/* Classes de delay escalonado para animar cards em sequência */
+.stagger-1 { animation-delay: .05s; }
+.stagger-2 { animation-delay: .10s; }
+.stagger-3 { animation-delay: .15s; }
+.stagger-4 { animation-delay: .20s; }
+
+/* Oculta elementos completamente (override com !important para garantia) */
+.hidden { display: none !important; }
+
+/* Animação pulsante de foco nos campos de input ao carregar um exemplo */
+@keyframes inputPop {
+  0%   { box-shadow: 0 0 0 0 rgba(37,99,235,.4); }
+  70%  { box-shadow: 0 0 0 6px rgba(37,99,235,0); }
+  100% { box-shadow: 0 0 0 0 rgba(37,99,235,0); }
+}
+.input-highlight { animation: inputPop .3s ease; }
+
+/* ── 33. Media queries responsivas ───────────────────────── */
+/* Tablet largo (≤ 1100px): sidebar mais estreita, cards em 3 colunas */
+@media (max-width: 1100px) {
+  :root { --sidebar-w: 320px; }
+  .status-grid        { grid-template-columns: repeat(3,1fr); }
+  .method-compare-grid { grid-template-columns: repeat(2,1fr); }
+}
+
+/* Tablet (≤ 860px): layout muda para coluna única, sidebar colapsável */
+@media (max-width: 860px) {
+  :root { --sidebar-w: 100%; }  /* sidebar ocupa largura total abaixo do conteúdo */
+  .main-wrap   { grid-template-columns: 1fr; padding: 16px; }
+
+  /* Sidebar deixa de ser sticky e vira um card colapsável */
+  .sidebar     { position: static; top: auto; max-height: none; overflow: visible; padding-right: 0; }
+  .menu-toggle { display: flex; }               /* hamburguer aparece no header */
+  .sidebar-body { display: none; transition: all .3s ease; }  /* oculto por padrão */
+  .sidebar-body.open { display: flex; flex-direction: column; gap: 16px; }  /* abre ao clicar */
+
+  .page-header { padding: 0 16px; }
+  .section-nav { padding: 0 16px; }
+
+  /* Canvas de animação menor em tablets */
+  .anim-controls { gap: 8px; }
+  #anim-canvas   { height: 280px; }
+}
+
+/* Mobile (≤ 600px): ajustes de layout para telas pequenas */
+@media (max-width: 600px) {
+  .status-grid         { grid-template-columns: repeat(2,1fr); }   /* 2 colunas de stats */
+  .method-compare-grid { grid-template-columns: 1fr 1fr; }
+  .examples-grid       { grid-template-columns: 1fr; }             /* exemplos em coluna */
+  .input-row           { grid-template-columns: 1fr; }             /* a e b em coluna */
+  .chart-tabs          { flex-wrap: wrap; }
+  .chart-tab           { font-size: .65rem; padding: 4px 8px; }
+  .header-title        { font-size: .95rem; }
+  .header-subtitle     { display: none; }   /* oculta subtítulo no header para economizar espaço */
+  #anim-canvas         { height: 220px; }
+
+  /* Controles de animação empilhados verticalmente */
+  .anim-controls       { flex-direction: column; align-items: stretch; gap: 10px; }
+  .anim-slider-wrap    { width: 100%; }
+}
+
+/* Mobile pequeno (≤ 400px): simplificações adicionais */
+@media (max-width: 400px) {
+  .status-grid         { grid-template-columns: 1fr 1fr; }
+  .method-compare-grid { grid-template-columns: 1fr; }   /* cards de método em coluna */
+}

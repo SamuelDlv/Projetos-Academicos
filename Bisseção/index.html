@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<!-- ============================================================
+     index.html — Método da Bisseção · Cálculo Numérico
+     ============================================================
+     Estrutura da página:
+       1. <head>          Metadados, fontes e folha de estilo
+       2. #snow-canvas    Canvas 2D para animação de neve decorativa
+       3. #python-source  Código Python embutido executado pelo Pyodide
+       4. .page-header    Cabeçalho fixo com logo, título e badge de status
+       5. .section-nav    Barra de abas de navegação (sticky abaixo do header)
+       6. .main-wrap      Grade principal: sidebar (esquerda) + conteúdo (direita)
+       7. .sidebar        Painel de configurações fixo com cards empilhados
+       8. section         Área de resultados com painéis por seção
+
+     Seções principais (ativadas via JavaScript - switchSection()):
+       sec-bissecao    → Calculadora principal com tabela de iterações e gráficos
+       sec-animacao    → Animação canvas passo a passo do método
+       sec-comparacao  → Comparação dos 4 métodos numéricos
+       sec-multiroot   → Varredura automática de múltiplas raízes
+       sec-interpolacao→ Polinômio interpolador de Newton
+
+     Dependências externas (carregadas ao final do <body>):
+       Pyodide v0.25.0   — Runtime Python/WebAssembly no navegador
+       Chart.js v4.4.1   — Biblioteca de gráficos responsivos
+       script.js         — Lógica JavaScript da aplicação
+     ============================================================ -->
+<html lang="pt-BR">
+<head>
+  <!-- Codificação UTF-8 para suporte a caracteres especiais (acentos, ε, π, etc.) -->
+  <!-- Viewport responsivo: largura = dispositivo, sem zoom automático -->
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Método da Bisseção — Cálculo Numérico</title>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+
+<!-- Canvas de fundo para a animação de flocos de neve.
+     aria-hidden="true" = invisível para leitores de tela (elemento puramente decorativo).
+     Posicionado fixo com z-index baixo via CSS (#snow-canvas) para ficar atrás de tudo. -->
+<canvas id="snow-canvas" aria-hidden="true"></canvas>
+
+<!-- ╔══════════════════════════════════════════════════════════╗
+     ║  CÓDIGO PYTHON EMBUTIDO                                  ║
+     ║  type="text/python" impede execução pelo browser.        ║
+     ║  O Pyodide lê este conteúdo via:                         ║
+     ║    document.getElementById("python-source").textContent  ║
+     ║  e o executa como Python/WebAssembly no navegador.       ║
+     ║  Para documentação completa, veja bissecao.py.           ║
+     ╚══════════════════════════════════════════════════════════╝ -->
+<script id="python-source" type="text/python">
+import math, json
+
+SAFE_MATH = {
+    "sin":math.sin,"cos":math.cos,"tan":math.tan,"exp":math.exp,
+    "log":math.log,"log10":math.log10,"sqrt":math.sqrt,"abs":abs,
+    "pi":math.pi,"e":math.e,"asin":math.asin,"acos":math.acos,
+    "atan":math.atan,"sinh":math.sinh,"cosh":math.cosh,"tanh":math.tanh,
+    "__builtins__":{},
+}
+def f(expr,x): return eval(expr, SAFE_MATH, {"x":x})
+def df(expr,x,h=1e-7): return (f(expr,x+h)-f(expr,x-h))/(2*h)
+def est(a,b,tol):
+    if tol<=0 or b<=a: return 0
+    return math.ceil(math.log2((b-a)/tol))
+
+def bissecao(expr,a,b,tol=1e-6,mi=100):
+    try: fa=f(expr,a); fb=f(expr,b)
+    except Exception as e: return {"error":f"Erro: {e}"}
+    if not math.isfinite(fa) or not math.isfinite(fb): return {"error":"f(a) ou f(b) inválido."}
+    if fa*fb>0: return {"error":"Bolzano não satisfeito: f(a)·f(b)>0. Ajuste [a,b]."}
+    if fa==0: return {"root":a,"iterations":[],"converged":True,"total_iterations":0,"final_error":0.,"f_root":0.,"estimated_iterations":0}
+    if fb==0: return {"root":b,"iterations":[],"converged":True,"total_iterations":0,"final_error":0.,"f_root":0.,"estimated_iterations":0}
+    iters=[]; e=est(a,b,tol); c=a
+    for i in range(1,mi+1):
+        c=(a+b)/2.; fc=f(expr,c); ae=abs(b-a)/2.; re=ae/abs(c) if c else ae
+        iters.append({"n":i,"a":a,"b":b,"c":c,"fa":fa,"fb":fb,"fc":fc,"abs_error":ae,"rel_error":re})
+        if ae<tol or abs(fc)<tol*1e-4 or fc==0:
+            return {"root":c,"iterations":iters,"converged":True,"total_iterations":i,"final_error":ae,"f_root":fc,"estimated_iterations":e}
+        if fa*fc<0: b,fb=c,fc
+        else: a,fa=c,fc
+    return {"root":c,"iterations":iters,"converged":False,"total_iterations":mi,"final_error":abs(b-a)/2,"f_root":f(expr,c),"estimated_iterations":e,"warning":f"Limite {mi} iter."}
+
+def newton(expr,x0,tol=1e-6,mi=100):
+    iters=[]; x=float(x0)
+    for i in range(1,mi+1):
+        try: fx=f(expr,x); fpx=df(expr,x)
+        except: break
+        if abs(fpx)<1e-14: return {"error":"Derivada zero."}
+        xn=x-fx/fpx; ae=abs(xn-x)
+        iters.append({"n":i,"x":x,"fx":fx,"fpx":fpx,"x_new":xn,"abs_error":ae}); x=xn
+        if ae<tol: return {"root":x,"iterations":iters,"converged":True,"total_iterations":i,"final_error":ae,"f_root":f(expr,x)}
+    return {"root":x,"iterations":iters,"converged":False,"total_iterations":mi,"final_error":abs(f(expr,x)),"f_root":f(expr,x),"warning":"Limite atingido."}
+
+def falsa_posicao(expr,a,b,tol=1e-6,mi=100):
+    try: fa=f(expr,a); fb=f(expr,b)
+    except Exception as e: return {"error":f"Erro: {e}"}
+    if fa*fb>0: return {"error":"Bolzano não satisfeito."}
+    iters=[]; c=a
+    for i in range(1,mi+1):
+        if abs(fb-fa)<1e-14: break
+        c=(a*fb-b*fa)/(fb-fa); fc=f(expr,c); ae=abs(b-a)/2.
+        iters.append({"n":i,"a":a,"b":b,"c":c,"fa":fa,"fb":fb,"fc":fc,"abs_error":ae})
+        if abs(fc)<tol or ae<tol: return {"root":c,"iterations":iters,"converged":True,"total_iterations":i,"final_error":ae,"f_root":fc}
+        if fa*fc<0: b,fb=c,fc
+        else: a,fa=c,fc
+    return {"root":c,"iterations":iters,"converged":False,"total_iterations":mi,"final_error":abs(f(expr,c)),"f_root":f(expr,c),"warning":"Limite atingido."}
+
+def secante(expr,x0,x1,tol=1e-6,mi=100):
+    iters=[]; xp,xc=float(x0),float(x1)
+    for i in range(1,mi+1):
+        try: fp=f(expr,xp); fc=f(expr,xc)
+        except: break
+        d=fc-fp
+        if abs(d)<1e-14: return {"error":"Denominador zero."}
+        xn=xc-fc*(xc-xp)/d; ae=abs(xn-xc)
+        iters.append({"n":i,"x0":xp,"x1":xc,"fx0":fp,"fx1":fc,"x_new":xn,"abs_error":ae}); xp,xc=xc,xn
+        if ae<tol: return {"root":xc,"iterations":iters,"converged":True,"total_iterations":i,"final_error":ae,"f_root":f(expr,xc)}
+    return {"root":xc,"iterations":iters,"converged":False,"total_iterations":mi,"final_error":abs(f(expr,xc)),"f_root":f(expr,xc),"warning":"Limite atingido."}
+
+def multiplas_raizes(expr,a,b,n_subdiv=60,tol=1e-6):
+    roots=[]; found=[]; step=(b-a)/n_subdiv
+    for i in range(n_subdiv):
+        ai,bi=a+i*step,a+(i+1)*step
+        try:
+            fai,fbi=f(expr,ai),f(expr,bi)
+            if not math.isfinite(fai) or not math.isfinite(fbi): continue
+            if fai*fbi<=0:
+                r=bissecao(expr,ai,bi,tol,80)
+                if "root" in r:
+                    rt=round(r["root"],8)
+                    if not any(abs(rt-rr)<tol*10 for rr in found):
+                        found.append(rt); roots.append({"root":rt,"interval":[ai,bi],"f_root":r["f_root"],"iterations":r["total_iterations"]})
+        except: pass
+    roots.sort(key=lambda x:x["root"])
+    return {"roots":roots,"count":len(roots)}
+
+def interpolar(pts,n_plot=300):
+    pts=sorted(pts,key=lambda p:p[0]); xs,ys=[p[0] for p in pts],[p[1] for p in pts]
+    n=len(xs); coef=list(ys)
+    for j in range(1,n):
+        for i in range(n-1,j-1,-1): coef[i]=(coef[i]-coef[i-1])/(xs[i]-xs[i-j])
+    span=(xs[-1]-xs[0])*0.2; xmin,xmax=xs[0]-span,xs[-1]+span
+    px=[xmin+i*(xmax-xmin)/n_plot for i in range(n_plot+1)]
+    py=[]
+    for x in px:
+        v=coef[-1]
+        for i in range(n-2,-1,-1): v=v*(x-xs[i])+coef[i]
+        py.append(v if math.isfinite(v) else None)
+    terms=[]
+    for i,c in enumerate(coef):
+        if abs(c)<1e-12: continue
+        t=f"{c:+.4f}"
+        for j in range(i): t+=f"·(x{-xs[j]:+.3f})"
+        terms.append(t)
+    return {"coef":coef,"xs":xs,"ys":ys,"plot_x":px,"plot_y":py,"poly_str":" ".join(terms) if terms else "0"}
+
+def run_from_js(p_json):
+    d=json.loads(p_json); cmd=d.get("cmd","bissecao"); tol=float(d.get("tol",1e-6)); mi=int(d.get("max_iter",100)); expr=d.get("expr","x")
+    if cmd=="bissecao": r=bissecao(expr,float(d["a"]),float(d["b"]),tol,mi)
+    elif cmd=="newton": r=newton(expr,float(d["x0"]),tol,mi)
+    elif cmd=="falsa_posicao": r=falsa_posicao(expr,float(d["a"]),float(d["b"]),tol,mi)
+    elif cmd=="secante": r=secante(expr,float(d["x0"]),float(d["x1"]),tol,mi)
+    elif cmd=="multiplas": r=multiplas_raizes(expr,float(d["a"]),float(d["b"]),int(d.get("n_subdiv",60)),tol)
+    elif cmd=="interpolar": r=interpolar(d["points"])
+    elif cmd=="comparar":
+        a,b=float(d["a"]),float(d["b"]); mid=(a+b)/2
+        r={"bissecao":bissecao(expr,a,b,tol,mi),"falsa_posicao":falsa_posicao(expr,a,b,tol,mi),"newton":newton(expr,mid,tol,mi),"secante":secante(expr,a,b,tol,mi)}
+    else: r={"error":f"Cmd: {cmd}"}
+    return json.dumps(r)
+</script>
+
+<div class="app">
+
+  <!-- ╔══ CABEÇALHO FIXO ══╗
+       Sticky no topo da página (position:sticky, z-index:200).
+       Contém: logo, título, subtítulo, badge de status Python e botão mobile. -->
+  <header class="page-header">
+    <div class="header-brand">
+      <div class="header-logo">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M3 12h18M12 3v18M7 7l10 10M17 7L7 17" stroke="white" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </div>
+      <div>
+        <div class="header-title">Método da Bisseção</div>
+        <div class="header-subtitle">Cálculo Numérico · f(x) = 0</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <span id="py-badge" class="header-badge">Iniciando…</span>
+      <button class="menu-toggle" onclick="toggleSidebar()" aria-label="Menu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- ╔══ BARRA DE ABAS ══╗
+       Sticky logo abaixo do header (top: var(--header-h), z-index:150).
+       Cada botão chama switchSection(nome) ao ser clicado.
+       A aba ativa recebe class="nav-tab active" via JavaScript. -->
+  <nav class="section-nav" role="tablist">
+    <button class="nav-tab active" data-sec="bissecao"     onclick="switchSection('bissecao')">
+      <span class="nav-tab-label">Bisseção</span>
+      <span class="nav-tab-sub">método principal</span>
+    </button>
+    <button class="nav-tab" data-sec="animacao"    onclick="switchSection('animacao')">
+      <span class="nav-tab-label">Animação</span>
+      <span class="nav-tab-sub">passo a passo</span>
+    </button>
+    <button class="nav-tab" data-sec="comparacao"  onclick="switchSection('comparacao')">
+      <span class="nav-tab-label">Comparação</span>
+      <span class="nav-tab-sub">4 métodos</span>
+    </button>
+    <button class="nav-tab" data-sec="multiroot"   onclick="switchSection('multiroot')">
+      <span class="nav-tab-label">Múltiplas Raízes</span>
+      <span class="nav-tab-sub">varredura automática</span>
+    </button>
+    <button class="nav-tab" data-sec="interpolacao" onclick="switchSection('interpolacao')">
+      <span class="nav-tab-label">Interpolação</span>
+      <span class="nav-tab-sub">polinômio P(x)</span>
+    </button>
+  </nav>
+
+  <main>
+    <div class="main-wrap">
+
+      <!-- ╔══ SIDEBAR DE CONFIGURAÇÕES ══╗
+           Painel lateral esquerdo com os cards de entrada de dados.
+           Em desktop: sticky, rola independentemente do conteúdo.
+           Em mobile (≤860px): colapsável via toggleSidebar().
+
+           Estrutura dos cards (de cima para baixo):
+             1. Função f(x)           — input de expressão + dicas de sintaxe
+             2. Exemplos              — botões gerados dinamicamente por JS
+             3. Parâmetros            — intervalo [a,b], tolerância, max iter, botão executar
+             4. Teorema de Bolzano    — indicador em tempo real de f(a)·f(b)
+             5. Estimativa de iter.   — n estimado vs real + barra de eficiência -->
+      <aside class="sidebar">
+        <div id="sidebar-body" class="sidebar-body open">
+
+          <!-- Função -->
+          <div class="card fade-up">
+            <div class="card-header"><span class="card-title">Função f(x)</span></div>
+            <div class="card-body">
+              <div class="field">
+                <div class="field-label"><span>Expressão</span><span class="hint">use x como variável</span></div>
+                <input id="func-expr" class="input" type="text" placeholder="ex: x**3 - x - 2" value="x**3 - x - 2" autocomplete="off" spellcheck="false"/>
+              </div>
+              <div style="font-family:var(--font-mono);font-size:.65rem;color:var(--slate);line-height:2.1;background:var(--frost);padding:9px 12px;border-radius:var(--r);">
+                <span data-tip="Potência: x**2">**</span> &nbsp;
+                <span data-tip="Multiplicação">*</span> &nbsp;
+                <span data-tip="Divisão">/</span> &nbsp;
+                <span data-tip="Seno">sin</span> &nbsp;
+                <span data-tip="Cosseno">cos</span> &nbsp;
+                <span data-tip="Tangente">tan</span><br>
+                <span data-tip="eˣ">exp</span> &nbsp;
+                <span data-tip="ln(x)">log</span> &nbsp;
+                <span data-tip="√x">sqrt</span> &nbsp;
+                <span data-tip="π = 3.14159">pi</span> &nbsp;
+                <span data-tip="e = 2.71828">e</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Exemplos -->
+          <div class="card fade-up stagger-1">
+            <div class="card-header"><span class="card-title">Exemplos</span></div>
+            <div class="card-body">
+              <div class="examples-grid" id="examples-grid"></div>
+            </div>
+          </div>
+
+          <!-- Parâmetros -->
+          <div class="card fade-up stagger-2">
+            <div class="card-header"><span class="card-title">Parâmetros</span></div>
+            <div class="card-body">
+              <div class="field">
+                <div class="field-label"><span>Intervalo [a, b]</span></div>
+                <div class="input-row">
+                  <div class="input-prefix-wrap"><span class="input-prefix">a</span><input id="a-val" class="input" type="number" value="1" step="any"/></div>
+                  <div class="input-prefix-wrap"><span class="input-prefix">b</span><input id="b-val" class="input" type="number" value="2" step="any"/></div>
+                </div>
+              </div>
+              <div class="field">
+                <div class="field-label"><span>Tolerância ε</span><span class="hint" data-tip="Critério: |b−a|/2 < ε">critério parada</span></div>
+                <div class="select-wrap">
+                  <select id="tol-val" class="input select">
+                    <option value="0.1">10⁻¹</option><option value="0.01">10⁻²</option>
+                    <option value="0.001">10⁻³</option><option value="0.0001" selected>10⁻⁴</option>
+                    <option value="0.00001">10⁻⁵</option><option value="0.000001">10⁻⁶</option>
+                    <option value="0.0000001">10⁻⁷</option>
+                  </select>
+                </div>
+              </div>
+              <div class="field">
+                <div class="field-label"><span>Máx. iterações</span></div>
+                <input id="max-iter" class="input" type="number" value="50" min="1" max="500"/>
+              </div>
+              <div class="divider"></div>
+              <button id="btn-run" class="btn btn-primary btn-run" onclick="runBissecao()">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg> Executar Bisseção
+              </button>
+              <p class="shortcut-hint">Ctrl + Enter</p>
+            </div>
+          </div>
+
+          <!-- Bolzano indicator -->
+          <div class="card fade-up stagger-3">
+            <div class="card-header"><span class="card-title">Teorema de Bolzano</span></div>
+            <div class="card-body">
+              <div class="bolzano-box">
+                <div class="bolzano-row">
+                  <div id="bolz-sign-a" class="bolzano-sign neutral">?</div>
+                  <div class="bolzano-info">
+                    <div class="lbl">f(a)</div>
+                    <div class="val" id="bolz-fa">—</div>
+                  </div>
+                </div>
+                <div class="bolzano-row">
+                  <div id="bolz-sign-b" class="bolzano-sign neutral">?</div>
+                  <div class="bolzano-info">
+                    <div class="lbl">f(b)</div>
+                    <div class="val" id="bolz-fb">—</div>
+                  </div>
+                </div>
+                <div id="bolz-result" class="bolzano-result neutral">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                  Informe a, b e a função
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Iter estimate -->
+          <div class="card fade-up stagger-4">
+            <div class="card-header"><span class="card-title">Estimativa de Iterações</span></div>
+            <div class="card-body">
+              <div class="iter-estimate">
+                <div class="iter-estimate-row">
+                  <span class="ie-label">n estimado</span>
+                  <span class="ie-val" id="ie-est">—</span>
+                </div>
+                <div class="iter-estimate-row">
+                  <span class="ie-label">n real</span>
+                  <span class="ie-val" id="ie-real" style="color:var(--green)">—</span>
+                </div>
+                <div class="iter-estimate-row">
+                  <span class="ie-label">tolerância ε</span>
+                  <span class="ie-val" style="color:var(--slate);font-size:.75rem" id="ie-tol">—</span>
+                </div>
+                <span class="ie-formula" id="ie-formula"></span>
+                <div class="theory-formula" style="font-size:.75rem;margin-top:10px">n ≥ log₂[(b−a) / ε]</div>
+              </div>
+              <div class="conv-bar-wrap">
+                <div class="conv-bar-label"><span>Eficiência</span><span id="conv-bar-pct" style="font-family:var(--font-mono);font-size:.62rem;color:var(--blue)">—</span></div>
+                <div class="conv-bar-track"><div class="conv-bar-fill" id="conv-bar-fill"></div></div>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /sidebar-body -->
+      </aside>
+
+      <!-- ╔══ ÁREA DE RESULTADOS ══╗
+           Ocupa a coluna direita da grade principal.
+           Contém os alertas de erro/aviso e os painéis de cada seção.
+           Apenas o painel com class="section-panel active" é exibido. -->
+      <section style="min-width:0">
+
+        <!-- Alertas de erro e aviso — visíveis apenas quando .visible é adicionado via JS.
+             hideAlerts() os oculta ao trocar de aba ou iniciar novo cálculo. -->
+        <div id="alert-error" class="alert alert-error" role="alert" style="margin-bottom:14px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <span class="alert-msg"></span>
+        </div>
+        <div id="alert-warning" class="alert alert-warning" role="alert" style="margin-bottom:14px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          <span class="alert-msg"></span>
+        </div>
+
+        <!-- ╔══════════════════════════════════════════════════════╗
+             ║  SEÇÃO: BISSEÇÃO — Calculadora principal           ║
+             ║  id="sec-bissecao"                                 ║
+             ║                                                    ║
+             ║  Componentes:                                      ║
+             ║    • section-hero   Descrição do método            ║
+             ║    • #empty-state   Placeholder antes do cálculo   ║
+             ║    • #results-section                              ║
+             ║        status-grid  5 cards de estatísticas        ║
+             ║        .card        Gráficos (f(x) / Convergência) ║
+             ║        .card        Tabela de iterações filtrável  ║
+             ╚══════════════════════════════════════════════════════╝ -->
+        <div id="sec-bissecao" class="section-panel active">
+
+          <!-- Hero -->
+          <div class="section-hero">
+            <div class="section-hero-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round"><path d="M3 12h18M12 3v18M7 7l10 10M17 7L7 17"/></svg>
+            </div>
+            <div class="section-hero-text">
+              <h2>Método da Bisseção</h2>
+              <p>Encontra raízes de <strong>f(x) = 0</strong> dividindo o intervalo [a, b] ao meio iterativamente. Baseado no <strong>Teorema de Bolzano</strong>: se f(a)·f(b) &lt; 0, existe pelo menos uma raiz no intervalo. Convergência linear com taxa constante <strong>1/2</strong> por iteração.</p>
+            </div>
+          </div>
+
+          <!-- Estado vazio: exibido antes do primeiro cálculo.
+               Oculto automaticamente quando renderResults() é chamado. -->
+          <div id="empty-state" class="card">
+            <div class="empty-state">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 12h18M12 3v18M7 7l10 10M17 7L7 17"/></svg>
+              <p>Configure a função e clique em <strong>Executar Bisseção</strong> para ver os resultados.</p>
+            </div>
+          </div>
+
+          <div id="results-section" class="hidden results-col">
+
+            <!-- Cards de estatísticas: preenchidos por renderStatCards() após cada cálculo.
+                 Cada card anima sua entrada com delay escalonado (60ms por card). -->
+            <div class="status-grid">
+              <div class="card stat-card">
+                <div class="stat-icon blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
+                <div class="stat-label">Raiz x*</div><div class="stat-value blue" id="stat-root">—</div>
+              </div>
+              <div class="card stat-card">
+                <div class="stat-icon teal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+                <div class="stat-label">f(x*)</div><div class="stat-value teal" id="stat-froot">—</div>
+              </div>
+              <div class="card stat-card">
+                <div class="stat-icon amber"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+                <div class="stat-label">Iterações</div><div class="stat-value amber" id="stat-iter">—</div>
+              </div>
+              <div class="card stat-card">
+                <div class="stat-icon amber"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
+                <div class="stat-label">Erro Final</div><div class="stat-value amber" id="stat-error">—</div>
+              </div>
+              <div class="card stat-card">
+                <div class="stat-icon green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></div>
+                <div class="stat-label">Status</div><div class="stat-value green" id="stat-conv">—</div>
+              </div>
+            </div>
+
+            <!-- Gráficos: alternados pelas abas "f(x)" e "Convergência".
+                 switchChart(mode) controla qual painel fica com class="active". -->
+            <div class="card">
+              <div class="card-header">
+                <span class="card-title">Visualização</span>
+                <div class="chart-tabs">
+                  <button class="chart-tab active" data-chart="func"  onclick="switchChart('func')">f(x)</button>
+                  <button class="chart-tab"         data-chart="err"   onclick="switchChart('err')">Convergência</button>
+                </div>
+              </div>
+              <div class="card-body">
+                <div id="chart-func" class="chart-panel active chart-wrap">
+                  <canvas id="func-chart" height="230"></canvas>
+                  <p class="chart-note">Curva azul = f(x) · Ponto = raiz · Região sombreada = [a, b] inicial · Linhas tracejadas = bordas do intervalo</p>
+                </div>
+                <div id="chart-err" class="chart-panel chart-wrap">
+                  <canvas id="err-chart" height="230"></canvas>
+                  <p class="chart-note">Eixo Y logarítmico · Erro reduz 50% por iteração (convergência linear)</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Tabela de iterações: sortTable(col) ordena, filterTable(q) filtra.
+                 A última linha recebe class="final-row" (destaque em verde). -->
+            <div class="card">
+              <div class="card-header">
+                <span class="card-title">Iterações <span id="iter-badge" class="iter-badge" style="margin-left:6px">—</span></span>
+                <div class="table-controls">
+                  <div class="search-wrap">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <input class="search-input" type="text" placeholder="Filtrar…" oninput="filterTable(this.value)"/>
+                  </div>
+                </div>
+              </div>
+              <div class="card-body" style="padding-top:0;padding-bottom:0">
+                <div class="table-scroll">
+                  <table>
+                    <thead><tr>
+                      <th onclick="sortTable('n')" data-col="n">n<span class="sort-icon">↕</span></th>
+                      <th onclick="sortTable('a')" data-col="a">a<span class="sort-icon">↕</span></th>
+                      <th onclick="sortTable('b')" data-col="b">b<span class="sort-icon">↕</span></th>
+                      <th onclick="sortTable('c')" data-col="c">c=(a+b)/2<span class="sort-icon">↕</span></th>
+                      <th onclick="sortTable('fa')" data-col="fa">f(a)<span class="sort-icon">↕</span></th>
+                      <th onclick="sortTable('fb')" data-col="fb">f(b)<span class="sort-icon">↕</span></th>
+                      <th onclick="sortTable('fc')" data-col="fc">f(c)<span class="sort-icon">↕</span></th>
+                      <th onclick="sortTable('abs_error')" data-col="abs_error">|b−a|/2<span class="sort-icon">↕</span></th>
+                      <th onclick="sortTable('rel_error')" data-col="rel_error">Err.Rel.<span class="sort-icon">↕</span></th>
+                    </tr></thead>
+                    <tbody id="table-body">
+                      <tr><td colspan="9" style="text-align:center;color:var(--mist);padding:24px;font-family:var(--font-sans)">Execute o método para ver as iterações.</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              <div style="height:1px"></div>
+            </div>
+
+          </div><!-- /results-section -->
+        </div><!-- /sec-bissecao -->
+
+        <!-- ╔══════════════════════════════════════════════════════╗
+             ║  SEÇÃO: ANIMAÇÃO — Visualização passo a passo      ║
+             ║  id="sec-animacao"                                 ║
+             ║                                                    ║
+             ║  Requer execução prévia da bisseção.               ║
+             ║  Componentes:                                      ║
+             ║    • section-hero       Descrição da animação      ║
+             ║    • #anim-canvas       Canvas 2D desenhado por JS ║
+             ║    • .anim-controls     Play/pause/slider/speed    ║
+             ║    • .card (legenda)    Cores e elementos visuais  ║
+             ╚══════════════════════════════════════════════════════╝ -->
+        <div id="sec-animacao" class="section-panel">
+          <div class="section-hero">
+            <div class="section-hero-icon" style="background:var(--orange)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            </div>
+            <div class="section-hero-text">
+              <h2>Animação — Bisseção Passo a Passo</h2>
+              <p>Visualize cada iteração do método da bisseção em tempo real. Observe como o intervalo [a, b] se divide ao meio, os sinais de f(a) e f(b) mudam, e o ponto médio <strong>c</strong> converge para a raiz. Use play/pause e o controle de velocidade.</p>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Animação Passo a Passo</span>
+              <span id="anim-iteration-badge" class="anim-iteration-badge">—</span>
+            </div>
+            <div class="card-body" style="padding-bottom:0">
+              <div class="anim-canvas-wrap">
+                <canvas id="anim-canvas"></canvas>
+              </div>
+            </div>
+            <div class="anim-controls">
+              <!-- Reset -->
+              <button class="anim-btn" onclick="resetAnim()" data-tip="Reiniciar">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.56"/></svg>
+              </button>
+              <!-- Play -->
+              <button id="anim-play" class="anim-btn" onclick="playAnim()" data-tip="Play">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+              </button>
+              <!-- Pause -->
+              <button id="anim-pause" class="anim-btn hidden" onclick="pauseAnim()" data-tip="Pausar">
+                <svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+              </button>
+              <!-- Slider -->
+              <div class="anim-slider-wrap">
+                <svg viewBox="0 0 24 24" fill="none" stroke="var(--slate)" stroke-width="2" width="13" height="13"><polyline points="9 18 15 12 9 6"/></svg>
+                <input id="anim-slider" class="anim-slider" type="range" min="0" max="0" value="0" oninput="seekAnim(this.value)"/>
+                <svg viewBox="0 0 24 24" fill="none" stroke="var(--slate)" stroke-width="2" width="13" height="13"><polyline points="9 18 15 12 9 6"/></svg>
+              </div>
+              <!-- Info -->
+              <span id="anim-info" class="anim-info">Execute a bisseção primeiro</span>
+              <!-- Speed -->
+              <div class="anim-speed-wrap">
+                <span class="anim-speed-label">vel.</span>
+                <button class="speed-btn" onclick="setAnimSpeed(1200,this)">0.5×</button>
+                <button class="speed-btn active" onclick="setAnimSpeed(600,this)">1×</button>
+                <button class="speed-btn" onclick="setAnimSpeed(250,this)">2×</button>
+                <button class="speed-btn" onclick="setAnimSpeed(80,this)">5×</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><span class="card-title">Legenda</span></div>
+            <div class="card-body">
+              <div style="display:flex;flex-wrap:wrap;gap:16px;font-size:.72rem;font-family:var(--font-mono);color:var(--dusk)">
+                <span><span style="color:#1e3a8a">━━</span> f(x)</span>
+                <span><span style="color:#2563eb">┊┊</span> Bordas [a, b]</span>
+                <span><span style="color:#2563eb">●</span> f(a) / f(b) (verde=+, vermelho=−)</span>
+                <span><span style="color:#ea580c">━━</span> Ponto médio c</span>
+                <span><span style="color:#ea580c">●</span> f(c) — próxima divisão</span>
+                <span><span style="background:rgba(37,99,235,.1);padding:1px 6px">▓</span> Intervalo atual</span>
+              </div>
+            </div>
+          </div>
+        </div><!-- /sec-animacao -->
+
+        <!-- ╔══════════════════════════════════════════════════════╗
+             ║  SEÇÃO: COMPARAÇÃO — Quatro métodos lado a lado    ║
+             ║  id="sec-comparacao"                               ║
+             ║                                                    ║
+             ║  Executa simultaneamente: Bisseção, Falsa Posição, ║
+             ║  Newton-Raphson e Secante. Destaca o vencedor.     ║
+             ║  Componentes:                                      ║
+             ║    • section-hero       Descrição dos métodos      ║
+             ║    • #btn-compare       Dispara runComparison()    ║
+             ║    • #cmp-section       Resultados (oculto até     ║
+             ║        #cmp-cards       comparação ser executada)  ║
+             ║        #cmp-chart       Gráfico comparativo (log)  ║
+             ╚══════════════════════════════════════════════════════╝ -->
+        <div id="sec-comparacao" class="section-panel">
+          <div class="section-hero">
+            <div class="section-hero-icon" style="background:var(--purple)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+            </div>
+            <div class="section-hero-text">
+              <h2>Comparação de Métodos de Bisseção</h2>
+              <p>Todos os métodos abaixo são variantes ou alternativas para encontrar raízes de f(x) = 0: <strong>Bisseção</strong> (divide ao meio), <strong>Falsa Posição</strong> (interpolação linear), <strong>Newton-Raphson</strong> (usa derivada) e <strong>Secante</strong> (aproxima a derivada). Compare convergência, velocidade e robustez.</p>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><span class="card-title">Comparar Métodos</span></div>
+            <div class="card-body">
+              <p style="font-size:.75rem;color:var(--dusk);line-height:1.7;margin-bottom:16px">
+                Compara Bisseção, Falsa Posição, Newton-Raphson e Secante para a mesma função e intervalo configurados no painel esquerdo.
+              </p>
+              <button id="btn-compare" class="btn btn-primary" onclick="runComparison()">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg> Comparar Métodos
+              </button>
+            </div>
+          </div>
+
+          <div id="cmp-section" class="hidden results-col">
+            <div class="card">
+              <div class="card-header"><span class="card-title">Resultados</span></div>
+              <div class="card-body">
+                <div id="cmp-cards" class="method-compare-grid"></div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header"><span class="card-title">Convergência Comparada (log)</span></div>
+              <div class="card-body">
+                <canvas id="cmp-chart" height="250"></canvas>
+                <p class="chart-note">Eixo Y logarítmico · Cada linha = erro por iteração de cada método · Quem desce mais rápido converge mais rápido</p>
+              </div>
+            </div>
+          </div>
+        </div><!-- /sec-comparacao -->
+
+        <!-- ╔══════════════════════════════════════════════════════╗
+             ║  SEÇÃO: MÚLTIPLAS RAÍZES — Varredura automática    ║
+             ║  id="sec-multiroot"                                ║
+             ║                                                    ║
+             ║  Divide o intervalo em subintervalos e aplica      ║
+             ║  bisseção em cada troca de sinal detectada.        ║
+             ║  Componentes:                                      ║
+             ║    • section-hero       Explicação do algoritmo    ║
+             ║    • #mr-a / #mr-b      Intervalo próprio (maior   ║
+             ║                         que o [a,b] principal)    ║
+             ║    • #btn-multiroot     Dispara runMultiRoot()     ║
+             ║    • #roots-container   Chips de raízes (dinâmico) ║
+             ╚══════════════════════════════════════════════════════╝ -->
+        <div id="sec-multiroot" class="section-panel">
+          <div class="section-hero">
+            <div class="section-hero-icon" style="background:var(--teal)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            </div>
+            <div class="section-hero-text">
+              <h2>Múltiplas Raízes — Varredura por Bisseção</h2>
+              <p>Aplica o <strong>método da bisseção</strong> repetidamente ao longo do intervalo, subdividindo-o em faixas e detectando trocas de sinal em cada uma. Encontra automaticamente <em>todas</em> as raízes distintas de f(x) = 0 no intervalo especificado.</p>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><span class="card-title">Busca de Múltiplas Raízes</span></div>
+            <div class="card-body">
+              <p style="font-size:.75rem;color:var(--dusk);line-height:1.7;margin-bottom:16px">
+                Varre o intervalo automaticamente subdividindo-o e aplica bisseção em cada subintervalo onde há mudança de sinal, encontrando todas as raízes distintas.
+              </p>
+              <div class="field">
+                <div class="field-label"><span>Intervalo de busca</span><span class="hint">pode ser maior que [a,b]</span></div>
+                <div class="input-row">
+                  <div class="input-prefix-wrap"><span class="input-prefix">a</span><input id="mr-a" class="input" type="number" placeholder="ex: -10" step="any"/></div>
+                  <div class="input-prefix-wrap"><span class="input-prefix">b</span><input id="mr-b" class="input" type="number" placeholder="ex: 10" step="any"/></div>
+                </div>
+                <p style="font-size:.65rem;color:var(--mist);margin-top:4px;font-family:var(--font-mono)">Vazio = usa [a, b] dos parâmetros</p>
+              </div>
+              <button id="btn-multiroot" class="btn btn-primary" onclick="runMultiRoot()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                Buscar Todas as Raízes
+              </button>
+            </div>
+          </div>
+
+          <div id="multiroot-result" class="hidden card">
+            <div class="card-header"><span class="card-title">Raízes Encontradas</span></div>
+            <div class="card-body">
+              <div id="roots-container"></div>
+            </div>
+          </div>
+        </div><!-- /sec-multiroot -->
+
+        <!-- ╔══════════════════════════════════════════════════════╗
+             ║  SEÇÃO: INTERPOLAÇÃO — Polinômio de Newton         ║
+             ║  id="sec-interpolacao"                             ║
+             ║                                                    ║
+             ║  Calcula P(x) pelas diferenças divididas de Newton ║
+             ║  para um conjunto de pontos (xᵢ, yᵢ) editáveis.   ║
+             ║  Componentes:                                      ║
+             ║    • section-hero       Explicação do método       ║
+             ║    • #interp-tbody      Tabela editável de pontos  ║
+             ║    • #btn-interp        Dispara runInterpolation() ║
+             ║    • #poly-string       Fórmula P(x) gerada        ║
+             ║    • #interp-chart      Gráfico do polinômio       ║
+             ╚══════════════════════════════════════════════════════╝ -->
+        <div id="sec-interpolacao" class="section-panel">
+          <div class="section-hero">
+            <div class="section-hero-icon" style="background:var(--purple)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            </div>
+            <div class="section-hero-text">
+              <h2>Polinômio Interpolador de Newton</h2>
+              <p>Dado um conjunto de pontos (xᵢ, yᵢ), calcula o <strong>polinômio interpolador P(x)</strong> pelo método das <strong>diferenças divididas de Newton</strong>. P(x) é o polinômio de menor grau que passa por todos os pontos fornecidos. Após obter P(x), aplique bisseção nele para encontrar raízes.</p>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Polinômio Interpolador (Newton)</span>
+              <button class="btn btn-ghost" onclick="addPoint()" style="padding:5px 12px;font-size:.72rem">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Ponto
+              </button>
+            </div>
+            <div class="card-body">
+              <p style="font-size:.75rem;color:var(--dusk);line-height:1.7;margin-bottom:14px">
+                Dado um conjunto de pontos (xᵢ, yᵢ), calcula o polinômio interpolador pelo método das diferenças divididas de Newton.
+              </p>
+              <div class="table-scroll">
+                <table class="points-table">
+                  <thead><tr><th>x</th><th>y = f(x)</th><th></th></tr></thead>
+                  <tbody id="interp-tbody"></tbody>
+                </table>
+              </div>
+              <div class="divider"></div>
+              <button id="btn-interp" class="btn btn-primary btn-run" onclick="runInterpolation()">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg> Calcular Polinômio
+              </button>
+            </div>
+          </div>
+
+          <div id="interp-result" class="hidden results-col">
+            <div class="card">
+              <div class="card-header"><span class="card-title">Polinômio P(x)</span></div>
+              <div class="card-body">
+                <div class="poly-display" id="poly-string">—</div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header"><span class="card-title">Gráfico do Polinômio</span></div>
+              <div class="card-body">
+                <canvas id="interp-chart" height="250"></canvas>
+                <p class="chart-note">Curva roxa = P(x) interpolador · Pontos azuis = dados fornecidos</p>
+              </div>
+            </div>
+          </div>
+        </div><!-- /sec-interpolacao -->
+
+      </section>
+    </div>
+  </main>
+</div>
+
+<!-- ╔══ SCRIPTS EXTERNOS ══╗
+     Carregados ao final do body para não bloquear a renderização inicial.
+     Ordem importa: Pyodide e Chart.js devem carregar antes de script.js. -->
+
+<!-- Runtime Pyodide: carrega Python/WebAssembly no navegador (~10MB, cacheado após 1ª visita) -->
+<script src="https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js"></script>
+<!-- Chart.js: biblioteca de gráficos responsivos e animados -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<!-- Lógica principal da aplicação: animação, gráficos, tabela, navegação -->
+<script src="script.js"></script>
+</body>
+</html>

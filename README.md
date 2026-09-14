@@ -1,6 +1,6 @@
 # Projeto Acadêmico
 
-Repositório com trabalhos e tarefas desenvolvidos ao longo da minha formação em Computação/Programação.
+Repositório com trabalhos e tarefas desenvolvidos ao longo da minha formação.
 
 ## Sobre
 

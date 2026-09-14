@@ -12,18 +12,14 @@ Cada subpasta representa um projeto independente e segue, sempre que possível, 
 
 ```
 projeto-academico/
-├── nome-do-projeto-1/
+├── projeto-1/
 │   ├── README.md
 │   └── (código-fonte e demais arquivos)
-├── nome-do-projeto-2/
+├── -projeto-2/
 │   ├── README.md
 │   └── (código-fonte e demais arquivos)
 └── README.md (este arquivo)
 ```
-
-Quando fizer sentido, cada projeto terá seu próprio README explicando objetivo, tecnologias utilizadas e instruções de execução.
-
-## Como navegar
 
 Basta acessar a pasta do projeto desejado. Os nomes das pastas são descritivos e indicam o conteúdo ou finalidade do trabalho.
 

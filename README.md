@@ -1,28 +1,34 @@
-# Projeto Acadêmico
+# Projetos Acadêmicos
 
-Repositório com trabalhos e tarefas desenvolvidos ao longo da minha formação.
+Este repositório reúne trabalhos, exercícios e projetos que desenvolvi durante minha formação.
 
-## Sobre
+A ideia é manter aqui um histórico dos projetos acadêmicos em vez de deixar cada atividade espalhada em lugares diferentes. Alguns projetos são exercícios menores; outros acabaram virando sistemas mais completos.
 
-Este repositório reúne projetos organizados em subpastas, cada uma correspondendo a um trabalho, exercício ou entrega específica. A ideia é centralizar o material produzido durante o curso, servindo tanto como histórico de evolução quanto como portfólio de referência.
+## Organização
 
-## Estrutura
+Cada pasta representa um projeto ou atividade independente. Quando um projeto tem uma documentação própria, o README dentro da pasta explica seu funcionamento.
 
-Cada subpasta representa um projeto independente e segue, sempre que possível, o padrão:
-
-```
-projeto-academico/
+```text
+Projetos-Academicos/
 ├── projeto-1/
 │   ├── README.md
-│   └── (código-fonte e demais arquivos)
-├── -projeto-2/
+│   └── arquivos do projeto
+├── projeto-2/
 │   ├── README.md
-│   └── (código-fonte e demais arquivos)
-└── README.md (este arquivo)
+│   └── arquivos do projeto
+└── README.md
 ```
 
-Basta acessar a pasta do projeto desejado. Os nomes das pastas são descritivos e indicam o conteúdo ou finalidade do trabalho.
+Os nomes e a organização das pastas podem mudar conforme o repositório cresce.
 
-## Status
+## Objetivo
 
-Repositório em construção — novos projetos serão adicionados conforme forem desenvolvidos.
+Além de guardar as entregas, uso este repositório para acompanhar minha evolução na programação e poder voltar a projetos antigos quando precisar revisar alguma ideia.
+
+## Autor
+
+**SamuelDlv**
+
+GitHub: https://github.com/SamuelDlv
+
+Repositório mantido por mim como parte da minha formação e dos meus estudos em tecnologia.

@@ -1,0 +1,5 @@
+# Arquivos gerados e configurações locais
+.idea/
+out/
+*.class
+*.iml

@@ -1,0 +1,12 @@
+{
+  "info": { "name": "Projeto Acadêmico - Professor, Curso e Aluno", "description": "Fluxo exigido: professor -> curso -> aluno. Os IDs são guardados automaticamente.", "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json" },
+  "variable": [ { "key": "baseUrl", "value": "http://localhost:8081" }, { "key": "professorId", "value": "" }, { "key": "cursoId", "value": "" } ],
+  "item": [
+    { "name": "1 - Cadastrar professor (POST)", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"nome\": \"Ana Lima\",\n  \"email\": \"ana@faculdade.edu\",\n  \"departamento\": \"Computação\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/professores" }, "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.response.to.have.status(201);", "pm.collectionVariables.set('professorId', pm.response.json().id);"] } }] },
+    { "name": "2 - Cadastrar curso (POST)", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"nome\": \"Spring Boot\",\n  \"professorId\": {{professorId}}\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/cursos" }, "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.response.to.have.status(201);", "pm.collectionVariables.set('cursoId', pm.response.json().id);"] } }] },
+    { "name": "3 - Cadastrar aluno (POST)", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"nome\": \"João Silva\",\n  \"email\": \"joao@aluno.edu\",\n  \"cursoId\": {{cursoId}}\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/alunos" }, "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.response.to.have.status(201);"] } }] },
+    { "name": "4 - Consultar professores (GET)", "request": { "method": "GET", "url": "{{baseUrl}}/professores" } },
+    { "name": "5 - Consultar cursos (GET)", "request": { "method": "GET", "url": "{{baseUrl}}/cursos" } },
+    { "name": "6 - Consultar alunos (GET)", "request": { "method": "GET", "url": "{{baseUrl}}/alunos" } }
+  ]
+}

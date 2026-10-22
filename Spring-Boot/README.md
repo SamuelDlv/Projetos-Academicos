@@ -1,5 +1,7 @@
 # API acadêmica - Spring Boot
 
+> **Outro projeto nesta pasta:** [API de alunos com token — partes 1 e 2](restapi-alunos/). Abra `Spring-Boot/restapi-alunos` no VS Code para executar esse exercício com Gradle. O projeto abaixo continua independente e usa Maven.
+
 Projeto de faculdade que implementa a modelagem solicitada: **Professor**, **Curso** e **Aluno**.
 
 ## Modelo de dados

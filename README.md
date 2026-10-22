@@ -21,6 +21,10 @@ Projetos-Academicos/
 
 Os nomes e a organização das pastas podem mudar conforme o repositório cresce.
 
+## Spring Boot
+
+Veja os [projetos Spring Boot](Spring-Boot/), incluindo a [Calculadora Web](Spring-Boot/calculadora-web/): API REST com interface, histórico, temas claro e escuro, Swagger e testes automatizados.
+
 ## Objetivo
 
 Além de guardar as entregas, uso este repositório para acompanhar minha evolução na programação e poder voltar a projetos antigos quando precisar revisar alguma ideia.

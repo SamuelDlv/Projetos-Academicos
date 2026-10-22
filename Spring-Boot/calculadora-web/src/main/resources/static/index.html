@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<main>
+    <header>
+        <div class="header-content">
+            <div>
+                <p>Cálculos rápidos e simples</p>
+                <h1>Calculadora</h1>
+            </div>
+            <button id="theme-toggle" class="icon-button" type="button" aria-label="Alternar tema" title="Alternar tema">☾</button>
+        </div>
+    </header>
+    <form id="form-calculadora">
+        <div class="numbers">
+            <label>Primeiro número
+                <input id="primeiroNumero" type="number" step="any" value="2" required>
+            </label>
+            <label>Segundo número
+                <input id="segundoNumero" type="number" step="any" value="3" required>
+            </label>
+        </div>
+        <label>Operação
+            <select id="operacao">
+                <option value="adicao">Adição</option>
+                <option value="subtracao">Subtração</option>
+                <option value="multiplicacao">Multiplicação</option>
+                <option value="divisao">Divisão</option>
+                <option value="exponenciacao" selected>Exponenciação</option>
+            </select>
+        </label>
+        <div class="quick-operations" aria-label="Operações rápidas">
+            <button type="button" data-operation="adicao">+ Adição</button>
+            <button type="button" data-operation="subtracao">− Subtração</button>
+            <button type="button" data-operation="multiplicacao">× Multiplicação</button>
+            <button type="button" data-operation="divisao">÷ Divisão</button>
+            <button type="button" data-operation="exponenciacao">xʸ Potência</button>
+        </div>
+        <p id="validacao" class="validation-message" aria-live="polite"></p>
+        <button type="submit">Calcular</button>
+        <section id="resultado" aria-live="polite">
+            <small>Resultado</small>
+            <div id="valor"></div>
+            <p id="situacao"></p>
+        </section>
+        <section class="history" aria-labelledby="historico-titulo">
+            <div class="history-header">
+                <h2 id="historico-titulo">Histórico</h2>
+                <button id="clear-history" class="text-button" type="button">Limpar</button>
+            </div>
+            <ul id="history-list" aria-live="polite"></ul>
+            <p id="empty-history">Nenhum cálculo realizado ainda.</p>
+        </section>
+    </form>
+</main>
+<script src="js/calculadora.js"></script>
+</body>
+</html>

@@ -4,8 +4,10 @@ import br.com.aula.loja.entity.Professor;
 import br.com.aula.loja.repository.ProfessorRepository;
 import br.com.aula.loja.request.ProfessorRequest;
 import br.com.aula.loja.response.ProfessorResponse;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 import java.util.List;
 
 @Service
@@ -22,5 +24,10 @@ public class ProfessorService {
     }
     @Transactional(readOnly = true)
     public List<ProfessorResponse> findAll() { return repository.findAll().stream().map(this::toResponse).toList(); }
+    @Transactional(readOnly = true)
+    public ProfessorResponse findById(Long id) {
+        return repository.findById(id).map(this::toResponse).orElseThrow(
+                () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Professor não encontrado"));
+    }
     private ProfessorResponse toResponse(Professor p) { return new ProfessorResponse(p.getId(), p.getNome(), p.getEmail(), p.getDepartamento()); }
 }

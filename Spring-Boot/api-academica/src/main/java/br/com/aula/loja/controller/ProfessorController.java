@@ -13,4 +13,6 @@ public class ProfessorController {
     @PostMapping @ResponseStatus(HttpStatus.CREATED)
     public ProfessorResponse cadastrar(@RequestBody ProfessorRequest request) { return service.save(request); }
     @GetMapping public List<ProfessorResponse> consultar() { return service.findAll(); }
+    @GetMapping("/{id}")
+    public ProfessorResponse consultarPorId(@PathVariable Long id) { return service.findById(id); }
 }

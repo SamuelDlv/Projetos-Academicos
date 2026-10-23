@@ -13,4 +13,6 @@ public class AlunoController {
     @PostMapping @ResponseStatus(HttpStatus.CREATED)
     public AlunoResponse cadastrar(@RequestBody AlunoRequest request) { return service.save(request); }
     @GetMapping public List<AlunoResponse> consultar() { return service.findAll(); }
+    @GetMapping("/{id}")
+    public AlunoResponse consultarPorId(@PathVariable Long id) { return service.findById(id); }
 }

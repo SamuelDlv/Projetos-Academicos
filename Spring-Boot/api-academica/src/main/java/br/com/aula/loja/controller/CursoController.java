@@ -13,4 +13,6 @@ public class CursoController {
     @PostMapping @ResponseStatus(HttpStatus.CREATED)
     public CursoResponse cadastrar(@RequestBody CursoRequest request) { return service.save(request); }
     @GetMapping public List<CursoResponse> consultar() { return service.findAll(); }
+    @GetMapping("/{id}")
+    public CursoResponse consultarPorId(@PathVariable Long id) { return service.findById(id); }
 }

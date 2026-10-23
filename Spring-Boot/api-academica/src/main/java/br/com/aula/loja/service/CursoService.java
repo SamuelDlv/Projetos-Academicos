@@ -30,5 +30,10 @@ public class CursoService {
     }
     @Transactional(readOnly = true)
     public List<CursoResponse> findAll() { return cursoRepository.findAll().stream().map(this::toResponse).toList(); }
+    @Transactional(readOnly = true)
+    public CursoResponse findById(Long id) {
+        return cursoRepository.findById(id).map(this::toResponse).orElseThrow(
+                () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Curso não encontrado"));
+    }
     private CursoResponse toResponse(Curso c) { return new CursoResponse(c.getId(), c.getNome(), c.getProfessor().getId()); }
 }

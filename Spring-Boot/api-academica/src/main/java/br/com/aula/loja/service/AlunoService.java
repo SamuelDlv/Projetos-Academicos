@@ -31,5 +31,10 @@ public class AlunoService {
     }
     @Transactional(readOnly = true)
     public List<AlunoResponse> findAll() { return alunoRepository.findAll().stream().map(this::toResponse).toList(); }
+    @Transactional(readOnly = true)
+    public AlunoResponse findById(Long id) {
+        return alunoRepository.findById(id).map(this::toResponse).orElseThrow(
+                () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Aluno não encontrado"));
+    }
     private AlunoResponse toResponse(Aluno a) { return new AlunoResponse(a.getId(), a.getNome(), a.getEmail(), a.getCurso().getId()); }
 }

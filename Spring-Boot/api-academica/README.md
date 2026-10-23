@@ -84,6 +84,12 @@ http://localhost:8081/alunos
 
 Clique em **Send** em cada requisição, nessa ordem. Os POSTs devem retornar **201 Created** e os GETs, **200 OK**. Para a entrega, capture as seis telas mostrando método, URL, status, resposta JSON e, nos POSTs, o Body enviado.
 
+## Consultas por ID e conflitos
+
+Também estão disponíveis as rotas `GET /professores/{id}`, `GET /cursos/{id}` e `GET /alunos/{id}`. Por exemplo, para buscar o curso salvo pela collection, use `{{baseUrl}}/cursos/{{cursoId}}`.
+
+Ao tentar cadastrar um professor ou aluno com um e-mail que já existe, a API retorna **409 Conflict** com uma mensagem explicando o conflito, em vez de **500 Internal Server Error**.
+
 Se repetir os cadastros com os mesmos e-mails, haverá conflito com a restrição de e-mail único. Use novos e-mails ou encerre a API com `Ctrl + C` e inicie novamente para reiniciar o banco em memória.
 
 ## Testes
